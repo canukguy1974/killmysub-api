@@ -7,7 +7,6 @@ attrs==25.3.0
 cachetools==5.5.2
 certifi==2025.4.26
 charset-normalizer==3.4.2
-dnspython==1.16.0
 frozenlist==1.6.2
 google-api-core==2.25.0
 google-api-python-client==2.171.0
