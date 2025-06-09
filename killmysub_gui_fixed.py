@@ -4,7 +4,7 @@ import requests
 import webbrowser
 import re
 
-API_URL = "https://backend-production-e077.up.railway.app/scan"  # Confirm this is the correct route
+API_URL = "https://killmysub-api-production.up.railway.app/scan"  # Confirm this is the correct route
 
 def start_scan():
     email = email_entry.get()
