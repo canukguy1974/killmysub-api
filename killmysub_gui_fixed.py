@@ -4,7 +4,7 @@ import requests
 import webbrowser
 import re
 
-API_URL = "https://backend-production-e077.up.railway.app/scan"  # Update if needed
+API_URL = "https://backend-production-e077.up.railway.app/scan"  # Confirm this is the correct route
 
 def start_scan():
     email = email_entry.get()
@@ -20,14 +20,18 @@ def start_scan():
         return
 
     payload = {"email": email, "phone": phone_clean}
-         print("👉 Sending to:", API_URL)
-         print("👉 Payload:", payload)
+    print("👉 Sending to:", API_URL)
+    print("👉 Payload:", payload)
 
     try:
         response = requests.post(API_URL, json=payload)
         print("👉 Response code:", response.status_code)
         print("👉 Response body:", response.text)
-        
+
+        if response.ok:
+            messagebox.showinfo("Success", "Scan request sent successfully!")
+        else:
+            messagebox.showerror("Error", f"Server error: {response.status_code}\n{response.text}")
     except Exception as e:
         messagebox.showerror("Exception", str(e))
 
