@@ -1,51 +1,52 @@
-# main.py - FastAPI backend for KillMySub
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from typing import List
-from uuid import uuid4
+from typing import Optional
+from pymongo import MongoClient
+from dotenv import load_dotenv
+import os
+import requests
+import datetime
 
+# Load environment variables
+load_dotenv()
+
+# MongoDB Setup
+MONGO_URI = os.getenv("MONGO_URI")
+MONGO_DB = os.getenv("MONGO_DB", "killmysub")
+MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "subscriptions")
+DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
+
+client = MongoClient(MONGO_URI)
+db = client[MONGO_DB]
+collection = db[MONGO_COLLECTION]
+
+# FastAPI app
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Pydantic input model
+class ScanRequest(BaseModel):
+    email: str
+    phone: str
 
-class Subscription(BaseModel):
-    id: str
-    service: str
-    tier: str
-    next_charge: str
-    payment_method: str
-    status: str = "active"
+@app.get("/")
+def root():
+    return {"message": "KillMySub API is alive."}
 
-# In-memory fake DB
-subs_db: List[Subscription] = []
+@app.post("/scan")
+async def scan(request: ScanRequest):
+    try:
+        # Store in MongoDB
+        data = {
+            "email": request.email,
+            "phone": request.phone,
+            "timestamp": datetime.datetime.utcnow().isoformat()
+        }
+        collection.insert_one(data)
 
-@app.get("/api/subscriptions", response_model=List[Subscription])
-def get_subs():
-    return subs_db
+        # Send to Discord webhook
+        if DISCORD_WEBHOOK:
+            requests.post(DISCORD_WEBHOOK, json=data)
 
-@app.post("/api/subscriptions/{sub_id}/cancel")
-def cancel_sub(sub_id: str):
-    for sub in subs_db:
-        if sub.id == sub_id:
-            sub.status = "cancel_requested"
-            return {"message": f"{sub.service} cancel initiated."}
-    raise HTTPException(status_code=404, detail="Subscription not found")
-
-@app.post("/api/subscriptions")
-def add_fake_sub():
-    new_sub = Subscription(
-        id=str(uuid4()),
-        service="Netflix",
-        tier="Standard",
-        next_charge="2025-06-15",
-        payment_method="Visa **** 4242"
-    )
-    subs_db.append(new_sub)
-    return new_sub
+        return {"status": "success", "message": "Data saved and webhook sent."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
