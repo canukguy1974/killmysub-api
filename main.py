@@ -35,12 +35,13 @@ def root():
 @app.post("/scan")
 async def scan(request: ScanRequest):
     try:
-        # Store in MongoDB
         data = {
             "email": request.email,
             "phone": request.phone,
             "timestamp": datetime.datetime.utcnow().isoformat()
         }
+
+        # Insert into MongoDB — do NOT try to return this result directly
         collection.insert_one(data)
 
         # Send to Discord webhook
@@ -48,5 +49,7 @@ async def scan(request: ScanRequest):
             requests.post(DISCORD_WEBHOOK, json=data)
 
         return {"status": "success", "message": "Data saved and webhook sent."}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
